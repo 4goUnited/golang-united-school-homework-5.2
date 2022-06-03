@@ -1,10 +1,8 @@
 package cache
 
-import (
-//	"fmt"
-	"time"
-)
+import "time"
 
+// Struct for values in Cache map
 type vt struct {
 	v string
 	t time.Time
@@ -19,16 +17,18 @@ func NewCache() Cache {
 }
 
 func (c Cache) Get(key string) (string, bool) {
-	if vt, ok := c.m[key]; !ok {
-		return "", false 
-	} else if time.Now().Before(vt.t) {
+	//Before getting values - update Cache
+	c.Update()
+	if _, ok := c.m[key]; !ok {
 		return "", false
 	}
 	return c.m[key].v, true
 }
 
+// First idea to avoid complex solution with time. In more reliable solution it
+// can be boolean flag for checking or not expire of the time
 func (c *Cache) Put(key, value string) {
-	c.m[key] = vt{v: value, t: time.Unix(1<<63-1,0)}
+	c.m[key] = vt{v: value, t: time.Unix(1<<62-1, 0)}
 }
 
 func (c Cache) Keys() []string {
@@ -40,13 +40,13 @@ func (c Cache) Keys() []string {
 }
 
 func (c *Cache) PutTill(key, value string, deadline time.Time) {
-	c.Update()
 	c.m[key] = vt{v: value, t: deadline}
 }
 
 func (c *Cache) Update() {
 	for key, vt := range c.m {
-		if time.Now().Before(vt.t) {
+		// Checks expire of the time value
+		if time.Now().After(vt.t) {
 			delete(c.m, key)
 		}
 	}
